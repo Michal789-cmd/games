@@ -1,0 +1,1353 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>Tetris mini</title>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --panel: rgba(255,255,255,.08);
+      --panel2: rgba(255,255,255,.06);
+      --border: rgba(255,255,255,.14);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.72);
+      --radius: 18px;
+      --shadow: 0 20px 60px rgba(0,0,0,.45);
+      --btn: rgba(255,255,255,.10);
+      --btn2: rgba(255,255,255,.14);
+      --focus: rgba(255,255,255,.25);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans";
+      color:var(--text);
+      background:
+        radial-gradient(1200px 700px at 20% 10%, rgba(92,124,250,.35), transparent 60%),
+        radial-gradient(900px 600px at 80% 20%, rgba(255,158,61,.28), transparent 60%),
+        radial-gradient(1000px 700px at 50% 90%, rgba(62,233,138,.18), transparent 55%),
+        var(--bg);
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .wrap{
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: clamp(14px, 2.4vw, 28px);
+    }
+    header{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    .brand{display:flex; gap:12px; align-items:center}
+    .logo{
+      width:42px;height:42px;border-radius:14px;
+      background: linear-gradient(135deg, rgba(255,255,255,.18), rgba(255,255,255,.06));
+      border:1px solid var(--border);
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+      display:grid; place-items:center;
+      font-weight:900;
+      user-select:none;
+    }
+    h1{margin:0; font-size: clamp(22px, 2.6vw, 30px); line-height:1.1}
+    .sub{margin:6px 0 0 0; color:var(--muted); font-size: 13px}
+    .actions{display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:flex-end}
+    .btn{
+      border:1px solid var(--border);
+      background: var(--btn);
+      color:var(--text);
+      border-radius: 14px;
+      padding: 10px 12px;
+      font-weight: 700;
+      cursor:pointer;
+      box-shadow: 0 12px 30px rgba(0,0,0,.25);
+      transition: transform .12s ease, background .12s ease, border-color .12s ease;
+      user-select:none;
+    }
+    .btn:hover{transform: translateY(-1px); background: var(--btn2); border-color: rgba(255,255,255,.22)}
+    .btn:focus-visible{outline:2px solid var(--focus); outline-offset:3px}
+    .btn.small{padding:8px 10px; font-size: 12px; font-weight: 800}
+    .layout{
+      display:grid;
+      grid-template-columns: 1fr 320px;
+      gap: 14px;
+      align-items:start;
+    }
+    .panel{
+      background: linear-gradient(180deg, var(--panel), var(--panel2));
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .gamePanel{
+      padding: 14px;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+    }
+    canvas{
+      width: min(92vw, 520px);
+      height: auto;
+      border-radius: 14px;
+      background: rgba(0,0,0,.25);
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: 0 16px 40px rgba(0,0,0,.35);
+      touch-action: none;
+    }
+    .side{
+      padding: 14px;
+      display:flex;
+      flex-direction:column;
+      gap: 12px;
+    }
+    .statRow{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .card{
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      border-radius: 16px;
+      padding: 12px;
+    }
+    .label{color:var(--muted); font-size: 12px; margin-bottom: 6px}
+    .value{font-size: 18px; font-weight: 900; letter-spacing:.2px}
+    .value.small{font-size: 14px; font-weight: 800; color: rgba(255,255,255,.82)}
+    .powerRow{display:flex; gap:10px; flex-wrap:wrap}
+    .power{
+      flex: 1 1 95px;
+      min-width: 95px;
+      border-radius: 16px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      padding: 10px;
+      cursor:pointer;
+      user-select:none;
+      transition: transform .12s ease, background .12s ease, border-color .12s ease;
+    }
+    .power:hover{transform: translateY(-1px); background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.22)}
+    .power:focus-visible{outline:2px solid var(--focus); outline-offset:3px}
+    .powerTop{display:flex; justify-content:space-between; align-items:center; gap: 8px}
+    .powerName{font-weight:900}
+    .powerCount{
+      font-weight:900;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.08);
+      font-size: 12px;
+    }
+    .powerHint{color:var(--muted); font-size: 12px; margin-top: 6px; line-height:1.25}
+    .divider{height:1px; background: rgba(255,255,255,.12); margin: 2px 0}
+
+    .controls{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .ctrlBtn{
+      padding: 12px 10px;
+      border-radius: 16px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.08);
+      color: var(--text);
+      font-weight: 900;
+      cursor:pointer;
+      user-select:none;
+    }
+    .ctrlBtn:active{transform: translateY(1px)}
+    .ctrlBtn.wide{grid-column: span 3}
+    .ctrlBtn.secondary{background: rgba(255,255,255,.06); color: rgba(255,255,255,.88)}
+    .hint{
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    /* Overlay menu */
+    .overlay{
+      position: fixed;
+      inset: 0;
+      display:none;
+      place-items:center;
+      padding: 18px;
+      background: rgba(0,0,0,.55);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      z-index: 50;
+    }
+    .overlay.show{display:grid}
+    .modal{
+      width: min(720px, 96vw);
+      border-radius: 20px;
+      border:1px solid rgba(255,255,255,.16);
+      background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
+      box-shadow: 0 30px 90px rgba(0,0,0,.55);
+      overflow:hidden;
+    }
+    .modalHeader{
+      padding: 16px 16px 10px;
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap: 12px;
+      border-bottom: 1px solid rgba(255,255,255,.12);
+    }
+    .modalHeader h2{margin:0; font-size: 18px}
+    .modalHeader p{margin:6px 0 0 0; color:var(--muted); font-size: 13px}
+    .modalBody{padding: 14px 16px 16px}
+    .diffGrid{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    .diff{
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      border-radius: 16px;
+      padding: 12px;
+      cursor:pointer;
+      user-select:none;
+      transition: transform .12s ease, background .12s ease, border-color .12s ease;
+    }
+    .diff:hover{transform: translateY(-1px); background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.22)}
+    .diff.active{border-color: rgba(255,255,255,.35); background: rgba(255,255,255,.12)}
+    .diffName{font-weight: 1000}
+    .diffMeta{margin-top:6px; color:var(--muted); font-size: 12px; line-height:1.25}
+    .modalFooter{
+      padding: 14px 16px 16px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap: 10px;
+      border-top: 1px solid rgba(255,255,255,.12);
+      flex-wrap:wrap;
+    }
+    .kbd{border:1px solid rgba(255,255,255,.16); padding: 3px 7px; border-radius: 8px; background: rgba(255,255,255,.06); font-weight: 900; font-size: 12px}
+
+    @media (max-width: 920px){
+      .layout{grid-template-columns: 1fr}
+      .side{order: 2}
+    }
+    @media (max-width: 640px){
+      .diffGrid{grid-template-columns: 1fr 1fr}
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo">🧱</div>
+        <div>
+          <h1>Tetris mini</h1>
+          <p class="sub">Klasika + obtížnost + multiplikátory + power-upy. PC i mobil.</p>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="btnMenu" class="btn small" type="button">⚙️ Nastavení</button>
+        <button id="btnPause" class="btn small" type="button">⏸ Pauza</button>
+        <button id="btnRestart" class="btn small" type="button">🔁 Restart</button>
+        <button id="btnMute" class="btn small" type="button">🔊 Zvuk</button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <div class="panel gamePanel">
+        <canvas id="c" width="360" height="720" aria-label="Tetris hrací plocha"></canvas>
+      </div>
+
+      <aside class="panel side">
+        <div class="statRow">
+          <div class="card">
+            <div class="label">Skóre</div>
+            <div class="value" id="score">0</div>
+            <div class="value small" id="scoreMeta">×1.00</div>
+          </div>
+          <div class="card">
+            <div class="label">High score (obtížnost)</div>
+            <div class="value" id="hiscore">0</div>
+            <div class="value small" id="hiscoreMeta">—</div>
+          </div>
+        </div>
+
+        <div class="statRow">
+          <div class="card">
+            <div class="label">Řádky</div>
+            <div class="value" id="lines">0</div>
+          </div>
+          <div class="card">
+            <div class="label">Stav</div>
+            <div class="value" id="status">MENU</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="label">Power-upy (klikni / tapni pro použití)</div>
+          <div class="powerRow">
+            <button class="power" id="pLine" type="button">
+              <div class="powerTop">
+                <div class="powerName">⭐ Line</div>
+                <div class="powerCount" id="pLineCount">0</div>
+              </div>
+              <div class="powerHint">Smaže spodní řádek (pokud existuje).<br><span class="kbd">1</span></div>
+            </button>
+            <button class="power" id="pSlow" type="button">
+              <div class="powerTop">
+                <div class="powerName">🧊 Slow</div>
+                <div class="powerCount" id="pSlowCount">0</div>
+              </div>
+              <div class="powerHint">Zpomalí pád na 4 s.<br><span class="kbd">2</span></div>
+            </button>
+            <button class="power" id="pBomb" type="button">
+              <div class="powerTop">
+                <div class="powerName">💣 Bomb</div>
+                <div class="powerCount" id="pBombCount">0</div>
+              </div>
+              <div class="powerHint">Další dílek bude bomba (3×3 po dopadu).<br><span class="kbd">3</span></div>
+            </button>
+          </div>
+          <div class="divider"></div>
+          <div class="hint">
+            Power-up bloky padají náhodně: <b>2%</b> místo dílku + po smazání řádku <b>20%</b> šance do zásobníku.
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="label">Ovládání</div>
+          <div class="hint">
+            PC: šipky, <span class="kbd">Space</span> drop, <span class="kbd">P</span> pauza, <span class="kbd">R</span> restart.<br>
+            Mobil: swipe ←/→, swipe ↓ (rychleji), tap = rotace, tlačítka níže.
+          </div>
+          <div style="height:10px"></div>
+          <div class="controls">
+            <button class="ctrlBtn" id="ctlLeft" type="button">⬅️</button>
+            <button class="ctrlBtn" id="ctlRotate" type="button">🔄</button>
+            <button class="ctrlBtn" id="ctlRight" type="button">➡️</button>
+            <button class="ctrlBtn" id="ctlDown" type="button">⬇️</button>
+            <button class="ctrlBtn" id="ctlDrop" type="button">⤓ DROP</button>
+            <button class="ctrlBtn secondary" id="ctlPause" type="button">⏸</button>
+            <button class="ctrlBtn wide secondary" id="ctlRestart" type="button">🔁 Restart</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- MENU OVERLAY -->
+  <div class="overlay show" id="overlay">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+      <div class="modalHeader">
+        <div>
+          <h2 id="mTitle">Nastav obtížnost</h2>
+          <p>Rychlost pádu + multiplikátor bodů. Pak <b>Start</b>.</p>
+        </div>
+        <button class="btn small" id="btnCloseOverlay" type="button">✖</button>
+      </div>
+      <div class="modalBody">
+        <div class="diffGrid" id="diffGrid"></div>
+        <div style="height:12px"></div>
+        <div class="hint" id="diffHint"></div>
+      </div>
+      <div class="modalFooter">
+        <div class="hint">
+          Tip: klikni na plochu hry → zvuk se „odemkne“ (některé prohlížeče to vyžadují).
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap">
+          <button class="btn" id="btnStart" type="button">▶ Start</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  // =========================
+  // Config
+  // =========================
+  const COLS = 10;
+  const ROWS = 20;
+  const CELL = 36;              // canvas cell size
+  const W = COLS * CELL;
+  const H = ROWS * CELL;
+
+  const DIFFS = [
+    { id:"easy",   name:"Easy",   ms:800, mult:1.00 },
+    { id:"normal", name:"Normal", ms:550, mult:1.25 },
+    { id:"hard",   name:"Hard",   ms:350, mult:1.60 },
+    { id:"insane", name:"Insane", ms:220, mult:2.00 },
+  ];
+
+  const SCORE_BASE = { 1:100, 2:300, 3:500, 4:800 };
+  const POWER_FALL_CHANCE = 0.02;        // 2%: next piece becomes power-block (single cell)
+  const POWER_REWARD_CHANCE = 0.20;      // 20% after clearing lines: add random power-up to inventory
+  const MAX_POWER_STACK = 5;             // cap to avoid hoarding
+
+  const POWER_TYPES = ["line", "slow", "bomb"];
+
+  // Tetrimino shapes in 4x4 matrices
+  const SHAPES = {
+    I: [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],
+    O: [[0,1,1,0],[0,1,1,0],[0,0,0,0],[0,0,0,0]],
+    T: [[0,1,0,0],[1,1,1,0],[0,0,0,0],[0,0,0,0]],
+    S: [[0,1,1,0],[1,1,0,0],[0,0,0,0],[0,0,0,0]],
+    Z: [[1,1,0,0],[0,1,1,0],[0,0,0,0],[0,0,0,0]],
+    J: [[1,0,0,0],[1,1,1,0],[0,0,0,0],[0,0,0,0]],
+    L: [[0,0,1,0],[1,1,1,0],[0,0,0,0],[0,0,0,0]],
+  };
+
+  // Color palette (simple, bright)
+  const COLORS = {
+    I: "#66d9ff",
+    O: "#ffd166",
+    T: "#c77dff",
+    S: "#80ed99",
+    Z: "#ff6b6b",
+    J: "#74c0fc",
+    L: "#ffa94d",
+    // power blocks
+    line: "#ffe066",
+    slow: "#a5d8ff",
+    bomb: "#ff8787",
+  };
+
+  const LS_PREFIX = "tetris_v1_";
+  const HS_KEY = (diffId) => `${LS_PREFIX}hiscore_${diffId}`;
+  const MUTE_KEY = `${LS_PREFIX}mute`;
+
+  // =========================
+  // DOM
+  // =========================
+  const c = document.getElementById("c");
+  c.width = W; c.height = H;
+  const ctx = c.getContext("2d");
+
+  const elScore = document.getElementById("score");
+  const elScoreMeta = document.getElementById("scoreMeta");
+  const elLines = document.getElementById("lines");
+  const elStatus = document.getElementById("status");
+  const elHi = document.getElementById("hiscore");
+  const elHiMeta = document.getElementById("hiscoreMeta");
+
+  const overlay = document.getElementById("overlay");
+  const diffGrid = document.getElementById("diffGrid");
+  const diffHint = document.getElementById("diffHint");
+
+  const btnMenu = document.getElementById("btnMenu");
+  const btnPause = document.getElementById("btnPause");
+  const btnRestart = document.getElementById("btnRestart");
+  const btnMute = document.getElementById("btnMute");
+  const btnStart = document.getElementById("btnStart");
+  const btnCloseOverlay = document.getElementById("btnCloseOverlay");
+
+  const pLine = document.getElementById("pLine");
+  const pSlow = document.getElementById("pSlow");
+  const pBomb = document.getElementById("pBomb");
+  const pLineCount = document.getElementById("pLineCount");
+  const pSlowCount = document.getElementById("pSlowCount");
+  const pBombCount = document.getElementById("pBombCount");
+
+  // controls
+  const ctlLeft = document.getElementById("ctlLeft");
+  const ctlRight = document.getElementById("ctlRight");
+  const ctlRotate = document.getElementById("ctlRotate");
+  const ctlDown = document.getElementById("ctlDown");
+  const ctlDrop = document.getElementById("ctlDrop");
+  const ctlPause = document.getElementById("ctlPause");
+  const ctlRestart = document.getElementById("ctlRestart");
+
+  // =========================
+  // Sound (simple WebAudio beeps)
+  // =========================
+  let audioCtx = null;
+  let muted = (localStorage.getItem(MUTE_KEY) === "1");
+
+  function ensureAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume().catch(()=>{});
+  }
+
+  function beep(freq=440, dur=0.06, type="sine", gain=0.03) {
+    if (muted) return;
+    ensureAudio();
+    if (!audioCtx) return;
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = type;
+    o.frequency.value = freq;
+    g.gain.value = gain;
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start();
+    o.stop(audioCtx.currentTime + dur);
+  }
+
+  const SFX = {
+    move(){beep(420, 0.03, "triangle", 0.02)},
+    rotate(){beep(520, 0.04, "square", 0.02)},
+    lock(){beep(220, 0.05, "sine", 0.025)},
+    line(){beep(740, 0.08, "sine", 0.04)},
+    tetris(){beep(880, 0.12, "sawtooth", 0.045)},
+    power(){beep(660, 0.08, "triangle", 0.04)},
+    pause(){beep(300, 0.06, "sine", 0.03)},
+    gameover(){beep(140, 0.18, "sawtooth", 0.05)},
+    drop(){beep(260, 0.04, "sine", 0.03)},
+  };
+
+  function updateMuteUI() {
+    btnMute.textContent = muted ? "🔇 Zvuk" : "🔊 Zvuk";
+  }
+  updateMuteUI();
+
+  // =========================
+  // Helpers
+  // =========================
+  function cloneMatrix(m){ return m.map(r => r.slice()); }
+
+  function rotateCW(mat){
+    const N = mat.length;
+    const res = Array.from({length:N}, () => Array(N).fill(0));
+    for (let y=0;y<N;y++) for (let x=0;x<N;x++) res[x][N-1-y] = mat[y][x];
+    return res;
+  }
+
+  function randChoice(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+  function newBoard(){
+    return Array.from({length:ROWS}, () => Array(COLS).fill(null)); // null or {k: 'T', color: '#..', kind:'normal'|'power', powerType?}
+  }
+
+  // 7-bag randomizer
+  let bag = [];
+  function refillBag(){
+    bag = ["I","O","T","S","Z","J","L"];
+    for (let i=bag.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [bag[i], bag[j]] = [bag[j], bag[i]];
+    }
+  }
+  function nextTetrominoKey(){
+    if (bag.length === 0) refillBag();
+    return bag.pop();
+  }
+
+  // =========================
+  // Game state
+  // =========================
+  let board = newBoard();
+  let cur = null;           // {x,y, mat, k, color, kind, powerType?}
+  let next = null;
+  let running = false;
+  let paused = false;
+  let gameOver = false;
+
+  let diff = DIFFS[1];      // default normal
+  let baseDropMs = diff.ms;
+  let dropMs = diff.ms;
+  let diffMult = diff.mult;
+
+  let score = 0;
+  let lines = 0;
+  let hiscore = 0;
+
+  // power inventory
+  const powers = { line:0, slow:0, bomb:0 };
+  let forceNextBomb = false; // when Bomb power is used, next spawned piece becomes bomb power-block
+
+  // effects
+  let flashRows = []; // rows to flash for a short time
+  let flashTimer = 0;
+  let particles = []; // {x,y,vx,vy,life}
+
+  // timing
+  let lastTs = 0;
+  let acc = 0;
+  let softDropping = false;
+  let slowUntil = 0;
+
+  function loadHiscore(){
+    const v = parseInt(localStorage.getItem(HS_KEY(diff.id)) || "0", 10);
+    hiscore = Number.isFinite(v) ? v : 0;
+    elHi.textContent = String(hiscore);
+    elHiMeta.textContent = `${diff.name} · ×${diffMult.toFixed(2)}`;
+  }
+
+  function saveHiscoreIfNeeded(){
+    if (score > hiscore){
+      hiscore = score;
+      localStorage.setItem(HS_KEY(diff.id), String(hiscore));
+      elHi.textContent = String(hiscore);
+    }
+  }
+
+  function setStatus(text){
+    elStatus.textContent = text;
+  }
+
+  function uiUpdate(){
+    elScore.textContent = String(score);
+    elScoreMeta.textContent = `×${diffMult.toFixed(2)} · ${diff.name}`;
+    elLines.textContent = String(lines);
+
+    pLineCount.textContent = String(powers.line);
+    pSlowCount.textContent = String(powers.slow);
+    pBombCount.textContent = String(powers.bomb);
+  }
+
+  function resetGame(){
+    board = newBoard();
+    score = 0;
+    lines = 0;
+    particles = [];
+    flashRows = [];
+    flashTimer = 0;
+    powers.line = 0; powers.slow = 0; powers.bomb = 0;
+    forceNextBomb = false;
+    paused = false;
+    running = true;
+    gameOver = false;
+    slowUntil = 0;
+    baseDropMs = diff.ms;
+    dropMs = baseDropMs;
+
+    cur = spawnPiece();
+    next = spawnPiece(true); // preview generation (but not forced bomb)
+    setStatus("HRA");
+    uiUpdate();
+    loadHiscore();
+    draw();
+  }
+
+  function canPlace(piece, dx=0, dy=0, matOverride=null){
+    const mat = matOverride || piece.mat;
+    for (let y=0;y<4;y++){
+      for (let x=0;x<4;x++){
+        if (!mat[y][x]) continue;
+        const bx = piece.x + x + dx;
+        const by = piece.y + y + dy;
+        if (bx < 0 || bx >= COLS || by >= ROWS) return false;
+        if (by >= 0 && board[by][bx]) return false;
+      }
+    }
+    return true;
+  }
+
+  function lockPiece(piece){
+    // place blocks onto board
+    for (let y=0;y<4;y++){
+      for (let x=0;x<4;x++){
+        if (!piece.mat[y][x]) continue;
+        const bx = piece.x + x;
+        const by = piece.y + y;
+        if (by < 0) continue; // above top
+        board[by][bx] = {
+          k: piece.k,
+          color: piece.color,
+          kind: piece.kind,
+          powerType: piece.powerType || null
+        };
+      }
+    }
+
+    // If it's a power-block, trigger its effect on lock
+    if (piece.kind === "power"){
+      triggerPowerOnLock(piece.powerType, piece);
+      SFX.power();
+    } else {
+      SFX.lock();
+    }
+
+    // Clear lines (for normal or after power)
+    const cleared = clearFullLines();
+    if (cleared.count > 0){
+      awardScoreForLines(cleared.count);
+      maybeRewardPowerAfterLines(cleared.count);
+      lines += cleared.count;
+      if (cleared.count === 4) SFX.tetris(); else SFX.line();
+      saveHiscoreIfNeeded();
+      uiUpdate();
+    }
+
+    // next piece
+    cur = next;
+    next = spawnPiece(true);
+
+    // game over check
+    if (!canPlace(cur, 0, 0)){
+      running = false;
+      gameOver = true;
+      setStatus("KONEC");
+      SFX.gameover();
+      saveHiscoreIfNeeded();
+    }
+  }
+
+  function clearFullLines(){
+    const full = [];
+    for (let y=0;y<ROWS;y++){
+      if (board[y].every(cell => cell)) full.push(y);
+    }
+    if (full.length === 0) return {count:0};
+
+    // flash effect setup
+    flashRows = full.slice();
+    flashTimer = 8; // frames
+
+    // particles from cleared rows
+    for (const ry of full){
+      for (let x=0;x<COLS;x++){
+        const cell = board[ry][x];
+        if (!cell) continue;
+        const px = x*CELL + CELL/2;
+        const py = ry*CELL + CELL/2;
+        for (let i=0;i<2;i++){
+          particles.push({
+            x: px + (Math.random()*10-5),
+            y: py + (Math.random()*10-5),
+            vx: (Math.random()*2-1) * 1.6,
+            vy: (Math.random()*2-1) * 1.6 - 2.0,
+            life: 18 + Math.random()*10
+          });
+        }
+      }
+    }
+
+    // remove lines and add empty at top
+    for (const ry of full){
+      board.splice(ry, 1);
+      board.unshift(Array(COLS).fill(null));
+    }
+
+    return {count: full.length};
+  }
+
+  function awardScoreForLines(n){
+    const base = SCORE_BASE[n] || 0;
+    const gained = Math.round(base * diffMult);
+    score += gained;
+  }
+
+  function maybeRewardPowerAfterLines(n){
+    // "20% chance after destroying a line" -> interpret as after any line clear event
+    // If you clear multiple lines at once, give one roll per event (simple & fair)
+    if (Math.random() < POWER_REWARD_CHANCE){
+      const t = randChoice(POWER_TYPES);
+      powers[t] = Math.min(MAX_POWER_STACK, powers[t] + 1);
+      uiUpdate();
+      // small bonus sound
+      SFX.power();
+    }
+  }
+
+  function spawnPiece(isPreview=false){
+    // decide whether we spawn a power-block instead of tetromino
+    let spawnPower = false;
+
+    if (!isPreview) {
+      // current piece spawn uses "forceNextBomb" if set
+      if (forceNextBomb){
+        spawnPower = true;
+      } else if (Math.random() < POWER_FALL_CHANCE){
+        spawnPower = true;
+      }
+    } else {
+      // preview piece: if bomb is forced, preview should reflect it (so player knows)
+      if (forceNextBomb) spawnPower = true;
+      else if (Math.random() < POWER_FALL_CHANCE) spawnPower = true;
+    }
+
+    if (spawnPower){
+      const pType = forceNextBomb ? "bomb" : randChoice(POWER_TYPES);
+      const mat = [
+        [0,0,0,0],
+        [0,1,0,0],
+        [0,0,0,0],
+        [0,0,0,0],
+      ];
+      const piece = {
+        kind: "power",
+        powerType: pType,
+        k: "P",
+        color: COLORS[pType],
+        mat,
+        x: Math.floor(COLS/2) - 1,
+        y: -2,
+      };
+      // consume forced flag if it was used
+      if (forceNextBomb) forceNextBomb = false;
+      return piece;
+    }
+
+    const k = nextTetrominoKey();
+    const piece = {
+      kind: "normal",
+      k,
+      color: COLORS[k],
+      mat: cloneMatrix(SHAPES[k]),
+      x: Math.floor(COLS/2) - 2,
+      y: -2,
+    };
+    return piece;
+  }
+
+  function triggerPowerOnLock(type, piece){
+    if (type === "line"){
+      // clear bottom-most non-empty full? user: "smaže spodní řádek" — do it if any blocks exist in bottom row
+      // We'll clear the bottom row if it contains at least one cell.
+      const bottom = ROWS-1;
+      const has = board[bottom].some(c => c);
+      if (has){
+        // particles from bottom
+        for (let x=0;x<COLS;x++){
+          const cell = board[bottom][x];
+          if (!cell) continue;
+          const px = x*CELL + CELL/2;
+          const py = bottom*CELL + CELL/2;
+          particles.push({x:px, y:py, vx:(Math.random()*2-1)*1.6, vy:-2.4-Math.random()*1.2, life:24+Math.random()*12});
+        }
+        board.splice(bottom, 1);
+        board.unshift(Array(COLS).fill(null));
+        flashRows = [bottom];
+        flashTimer = 8;
+      }
+      return;
+    }
+
+    if (type === "slow"){
+      // slow for 4s
+      slowUntil = performance.now() + 4000;
+      return;
+    }
+
+    if (type === "bomb"){
+      // explode 3x3 centered on the power block cell in board after lock
+      // find its (approx) center: the 1 cell is at (x+1, y+1) due to mat placement
+      const cx = piece.x + 1;
+      const cy = piece.y + 1;
+      explode3x3(cx, cy);
+      return;
+    }
+  }
+
+  function explode3x3(cx, cy){
+    for (let y=cy-1;y<=cy+1;y++){
+      if (y < 0 || y >= ROWS) continue;
+      for (let x=cx-1;x<=cx+1;x++){
+        if (x < 0 || x >= COLS) continue;
+        const cell = board[y][x];
+        if (cell){
+          const px = x*CELL + CELL/2;
+          const py = y*CELL + CELL/2;
+          for (let i=0;i<3;i++){
+            particles.push({
+              x: px + (Math.random()*10-5),
+              y: py + (Math.random()*10-5),
+              vx: (Math.random()*2-1)*2.3,
+              vy: (Math.random()*2-1)*2.3 - 2.5,
+              life: 22 + Math.random()*12
+            });
+          }
+        }
+        board[y][x] = null;
+      }
+    }
+    flashRows = [cy];
+    flashTimer = 8;
+  }
+
+  // =========================
+  // Movement
+  // =========================
+  function move(dx){
+    if (!running || paused || gameOver) return;
+    if (canPlace(cur, dx, 0)){
+      cur.x += dx;
+      SFX.move();
+      draw();
+    }
+  }
+
+  function rotate(){
+    if (!running || paused || gameOver) return;
+    if (cur.kind === "power") return; // power block doesn't rotate
+    const rotated = rotateCW(cur.mat);
+    // simple wall kicks (minimal)
+    const kicks = [0, -1, 1, -2, 2];
+    for (const k of kicks){
+      if (canPlace(cur, k, 0, rotated)){
+        cur.mat = rotated;
+        cur.x += k;
+        SFX.rotate();
+        draw();
+        return;
+      }
+    }
+  }
+
+  function softDropStart(){
+    if (!running || paused || gameOver) return;
+    softDropping = true;
+  }
+  function softDropStop(){
+    softDropping = false;
+  }
+
+  function hardDrop(){
+    if (!running || paused || gameOver) return;
+    let dy = 0;
+    while (canPlace(cur, 0, dy+1)) dy++;
+    cur.y += dy;
+    SFX.drop();
+    lockPiece(cur);
+    draw();
+  }
+
+  function stepDown(){
+    if (!running || paused || gameOver) return;
+    if (canPlace(cur, 0, 1)){
+      cur.y += 1;
+    } else {
+      lockPiece(cur);
+    }
+    draw();
+  }
+
+  function togglePause(){
+    if (!running && !gameOver) return;
+    if (gameOver) return;
+    paused = !paused;
+    setStatus(paused ? "PAUZA" : "HRA");
+    SFX.pause();
+    draw();
+  }
+
+  // =========================
+  // Power inventory usage
+  // =========================
+  function usePower(type){
+    if (!running || paused || gameOver) return;
+    if (powers[type] <= 0) return;
+
+    if (type === "line"){
+      powers.line--;
+      // immediate effect
+      triggerPowerOnLock("line", {x:0,y:0}); // piece not needed for line
+      // score a tiny bonus? keep it neutral; no extra points to avoid abuse
+      SFX.power();
+      uiUpdate();
+      draw();
+      return;
+    }
+
+    if (type === "slow"){
+      powers.slow--;
+      slowUntil = performance.now() + 4000;
+      SFX.power();
+      uiUpdate();
+      return;
+    }
+
+    if (type === "bomb"){
+      powers.bomb--;
+      forceNextBomb = true; // next spawn becomes bomb power block
+      SFX.power();
+      uiUpdate();
+      // update "next" to reflect forced bomb: regenerate next safely
+      next = spawnPiece(true);
+      draw();
+      return;
+    }
+  }
+
+  // =========================
+  // Rendering
+  // =========================
+  function clearCanvas(){
+    ctx.clearRect(0,0,W,H);
+    // background grid
+    ctx.fillStyle = "rgba(0,0,0,.18)";
+    ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle = "rgba(255,255,255,.06)";
+    ctx.lineWidth = 1;
+    for (let x=0;x<=COLS;x++){
+      ctx.beginPath();
+      ctx.moveTo(x*CELL+0.5, 0);
+      ctx.lineTo(x*CELL+0.5, H);
+      ctx.stroke();
+    }
+    for (let y=0;y<=ROWS;y++){
+      ctx.beginPath();
+      ctx.moveTo(0, y*CELL+0.5);
+      ctx.lineTo(W, y*CELL+0.5);
+      ctx.stroke();
+    }
+  }
+
+  function drawCell(x,y,color,alpha=1){
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = color;
+    ctx.fillRect(x*CELL+2, y*CELL+2, CELL-4, CELL-4);
+    // subtle highlight
+    ctx.fillStyle = "rgba(255,255,255,.10)";
+    ctx.fillRect(x*CELL+4, y*CELL+4, CELL-10, (CELL-10)*0.35);
+    ctx.globalAlpha = 1;
+  }
+
+  function drawBoard(){
+    for (let y=0;y<ROWS;y++){
+      for (let x=0;x<COLS;x++){
+        const cell = board[y][x];
+        if (!cell) continue;
+        let a = 1;
+        if (flashRows.includes(y) && flashTimer > 0){
+          a = (flashTimer % 2 === 0) ? 0.35 : 1;
+        }
+        drawCell(x,y,cell.color,a);
+      }
+    }
+  }
+
+  function drawPiece(piece, ghost=false){
+    const a = ghost ? 0.25 : 1;
+    for (let y=0;y<4;y++){
+      for (let x=0;x<4;x++){
+        if (!piece.mat[y][x]) continue;
+        const bx = piece.x + x;
+        const by = piece.y + y;
+        if (by < 0) continue;
+        drawCell(bx, by, piece.color, a);
+        if (piece.kind === "power" && !ghost){
+          // small icon hint inside the power block
+          ctx.globalAlpha = 0.9;
+          ctx.fillStyle = "rgba(0,0,0,.35)";
+          ctx.beginPath();
+          ctx.arc(bx*CELL + CELL/2, by*CELL + CELL/2, CELL*0.26, 0, Math.PI*2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = "rgba(255,255,255,.92)";
+          ctx.font = "900 16px ui-sans-serif, system-ui";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          const glyph = piece.powerType === "line" ? "★" : piece.powerType === "slow" ? "❄" : "●";
+          ctx.fillText(glyph, bx*CELL + CELL/2, by*CELL + CELL/2 + 1);
+        }
+      }
+    }
+  }
+
+  function drawGhost(){
+    if (!cur || cur.kind === "power") return; // keep v1 simple
+    const ghost = {...cur, mat: cur.mat, x: cur.x, y: cur.y};
+    let dy=0;
+    while (canPlace(ghost, 0, dy+1)) dy++;
+    ghost.y += dy;
+    drawPiece(ghost, true);
+  }
+
+  function drawHUDOverCanvas(){
+    // next preview small top-right
+    ctx.save();
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = "rgba(0,0,0,.35)";
+    ctx.fillRect(W-130, 10, 120, 120);
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = "rgba(255,255,255,.14)";
+    ctx.strokeRect(W-130+0.5, 10+0.5, 120, 120);
+
+    ctx.fillStyle = "rgba(255,255,255,.85)";
+    ctx.font = "800 12px ui-sans-serif, system-ui";
+    ctx.textAlign = "left";
+    ctx.fillText("NEXT", W-120, 28);
+
+    // draw next piece in 4x4 preview
+    if (next){
+      const ox = W-120;
+      const oy = 38;
+      const pCell = 20;
+      for (let y=0;y<4;y++){
+        for (let x=0;x<4;x++){
+          if (!next.mat[y][x]) continue;
+          ctx.fillStyle = next.color;
+          ctx.fillRect(ox + x*pCell, oy + y*pCell, pCell-2, pCell-2);
+        }
+      }
+    }
+
+    // pause / gameover overlay
+    if (paused || gameOver){
+      ctx.globalAlpha = 0.70;
+      ctx.fillStyle = "rgba(0,0,0,.55)";
+      ctx.fillRect(0,0,W,H);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "rgba(255,255,255,.92)";
+      ctx.font = "900 34px ui-sans-serif, system-ui";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(gameOver ? "KONEC HRY" : "PAUZA", W/2, H/2 - 16);
+      ctx.font = "800 14px ui-sans-serif, system-ui";
+      ctx.fillStyle = "rgba(255,255,255,.78)";
+      ctx.fillText("P: pauza · R: restart · Space: drop", W/2, H/2 + 22);
+    }
+
+    ctx.restore();
+  }
+
+  function drawParticles(){
+    for (const p of particles){
+      ctx.globalAlpha = Math.max(0, Math.min(1, p.life/26));
+      ctx.fillStyle = "rgba(255,255,255,.85)";
+      ctx.fillRect(p.x, p.y, 2.5, 2.5);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  function draw(){
+    clearCanvas();
+    drawBoard();
+    drawGhost();
+    if (cur) drawPiece(cur, false);
+    drawParticles();
+    drawHUDOverCanvas();
+  }
+
+  // =========================
+  // Game loop
+  // =========================
+  function tick(ts){
+    requestAnimationFrame(tick);
+    if (!running || paused || gameOver) return;
+
+    const now = ts;
+    const dt = (lastTs ? now - lastTs : 16);
+    lastTs = now;
+
+    // slow power
+    dropMs = baseDropMs;
+    if (now < slowUntil) dropMs = Math.round(baseDropMs * 1.65);
+
+    // soft drop speeds up
+    const effectiveMs = softDropping ? Math.max(40, Math.round(dropMs * 0.12)) : dropMs;
+
+    acc += dt;
+    if (acc >= effectiveMs){
+      acc = 0;
+      stepDown();
+    }
+
+    // update effects
+    if (flashTimer > 0) flashTimer--;
+    particles = particles.filter(p => {
+      p.x += p.vx; p.y += p.vy;
+      p.vy += 0.12;
+      p.life -= 1;
+      return p.life > 0;
+    });
+
+    // keep drawing
+    draw();
+  }
+
+  // =========================
+  // Input: keyboard
+  // =========================
+  window.addEventListener("keydown", (e) => {
+    // unlock audio on first interaction
+    ensureAudio();
+
+    if (overlay.classList.contains("show")){
+      if (e.key === "Escape") overlay.classList.remove("show");
+      return;
+    }
+
+    if (e.key === "ArrowLeft"){ e.preventDefault(); move(-1); }
+    else if (e.key === "ArrowRight"){ e.preventDefault(); move(1); }
+    else if (e.key === "ArrowUp"){ e.preventDefault(); rotate(); }
+    else if (e.key === "ArrowDown"){ e.preventDefault(); softDropStart(); }
+    else if (e.code === "Space"){ e.preventDefault(); hardDrop(); }
+    else if (e.key.toLowerCase() === "p"){ e.preventDefault(); togglePause(); }
+    else if (e.key.toLowerCase() === "r"){ e.preventDefault(); resetGame(); }
+    else if (e.key === "1"){ usePower("line"); }
+    else if (e.key === "2"){ usePower("slow"); }
+    else if (e.key === "3"){ usePower("bomb"); }
+  });
+
+  window.addEventListener("keyup", (e) => {
+    if (e.key === "ArrowDown"){ softDropStop(); }
+  });
+
+  // =========================
+  // Input: touch (swipe + tap)
+  // =========================
+  let touchStart = null;
+  let lastMoveAt = 0;
+
+  function onTouchStart(ev){
+    ensureAudio();
+    if (!running || paused || gameOver) return;
+    if (ev.touches.length !== 1) return;
+    const t = ev.touches[0];
+    touchStart = { x: t.clientX, y: t.clientY, time: performance.now() };
+    lastMoveAt = performance.now();
+  }
+
+  function onTouchMove(ev){
+    if (!touchStart) return;
+    if (!running || paused || gameOver) return;
+    if (ev.touches.length !== 1) return;
+
+    const t = ev.touches[0];
+    const dx = t.clientX - touchStart.x;
+    const dy = t.clientY - touchStart.y;
+    const now = performance.now();
+
+    // horizontal swipe for step moves, rate-limited
+    if (Math.abs(dx) > 22 && now - lastMoveAt > 85){
+      move(dx > 0 ? 1 : -1);
+      touchStart.x = t.clientX; // reset for continuous swipe
+      lastMoveAt = now;
+    }
+
+    // vertical swipe down enables soft drop
+    if (dy > 18){
+      softDropStart();
+    } else {
+      softDropStop();
+    }
+  }
+
+  function onTouchEnd(ev){
+    if (!touchStart) return;
+    softDropStop();
+
+    const endTime = performance.now();
+    const dt = endTime - touchStart.time;
+
+    // tap = rotate (short + small movement)
+    // fast swipe down = hard drop
+    // We'll detect last known end positions via changedTouches
+    const ct = ev.changedTouches && ev.changedTouches[0];
+    if (ct){
+      const dx = ct.clientX - touchStart.x;
+      const dy = ct.clientY - touchStart.y;
+      if (dt < 220 && Math.abs(dx) < 14 && Math.abs(dy) < 14){
+        rotate();
+      } else if (dy > 85 && dt < 300){
+        hardDrop();
+      }
+    }
+
+    touchStart = null;
+  }
+
+  c.addEventListener("touchstart", onTouchStart, {passive:false});
+  c.addEventListener("touchmove", onTouchMove, {passive:false});
+  c.addEventListener("touchend", onTouchEnd, {passive:false});
+  c.addEventListener("mousedown", () => ensureAudio()); // desktop unlock
+
+  // =========================
+  // UI bindings
+  // =========================
+  btnMenu.addEventListener("click", () => {
+    overlay.classList.add("show");
+    setStatus("MENU");
+    draw();
+  });
+
+  btnCloseOverlay.addEventListener("click", () => {
+    overlay.classList.remove("show");
+    if (running && !gameOver) setStatus(paused ? "PAUZA" : "HRA");
+    draw();
+  });
+
+  btnStart.addEventListener("click", () => {
+    overlay.classList.remove("show");
+    resetGame();
+    ensureAudio();
+  });
+
+  btnPause.addEventListener("click", () => togglePause());
+  btnRestart.addEventListener("click", () => resetGame());
+
+  btnMute.addEventListener("click", () => {
+    muted = !muted;
+    localStorage.setItem(MUTE_KEY, muted ? "1" : "0");
+    updateMuteUI();
+    if (!muted) SFX.power();
+  });
+
+  // power buttons
+  pLine.addEventListener("click", () => usePower("line"));
+  pSlow.addEventListener("click", () => usePower("slow"));
+  pBomb.addEventListener("click", () => usePower("bomb"));
+
+  // on-screen controls
+  ctlLeft.addEventListener("pointerdown", () => { ensureAudio(); move(-1); });
+  ctlRight.addEventListener("pointerdown", () => { ensureAudio(); move(1); });
+  ctlRotate.addEventListener("pointerdown", () => { ensureAudio(); rotate(); });
+  ctlDown.addEventListener("pointerdown", () => { ensureAudio(); softDropStart(); });
+  ctlDown.addEventListener("pointerup", () => softDropStop());
+  ctlDown.addEventListener("pointercancel", () => softDropStop());
+  ctlDrop.addEventListener("pointerdown", () => { ensureAudio(); hardDrop(); });
+  ctlPause.addEventListener("pointerdown", () => { ensureAudio(); togglePause(); });
+  ctlRestart.addEventListener("pointerdown", () => { ensureAudio(); resetGame(); });
+
+  // =========================
+  // Difficulty UI
+  // =========================
+  let selectedDiffId = diff.id;
+
+  function renderDiffGrid(){
+    diffGrid.innerHTML = "";
+    for (const d of DIFFS){
+      const el = document.createElement("button");
+      el.type = "button";
+      el.className = "diff" + (d.id === selectedDiffId ? " active" : "");
+      el.innerHTML = `
+        <div class="diffName">${d.name}</div>
+        <div class="diffMeta">Rychlost: ${d.ms} ms<br>Body: ×${d.mult.toFixed(2)}</div>
+      `;
+      el.addEventListener("click", () => {
+        selectedDiffId = d.id;
+        applySelectedDiff();
+        renderDiffGrid();
+      });
+      diffGrid.appendChild(el);
+    }
+    applySelectedDiff();
+  }
+
+  function applySelectedDiff(){
+    diff = DIFFS.find(x => x.id === selectedDiffId) || DIFFS[1];
+    diffMult = diff.mult;
+    baseDropMs = diff.ms;
+    diffHint.innerHTML = `
+      Vybráno: <b>${diff.name}</b> · pád každých <b>${diff.ms} ms</b> · multiplikátor <b>×${diff.mult.toFixed(2)}</b>.<br>
+      High score se ukládá zvlášť pro každou obtížnost.
+    `;
+    elScoreMeta.textContent = `×${diffMult.toFixed(2)} · ${diff.name}`;
+    loadHiscore();
+  }
+
+  renderDiffGrid();
+
+  // =========================
+  // Init
+  // =========================
+  setStatus("MENU");
+  loadHiscore();
+  uiUpdate();
+  draw();
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
