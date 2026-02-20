@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>Třídění odpadu</title>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --panel: rgba(255,255,255,.08);
+      --panel2: rgba(255,255,255,.06);
+      --border: rgba(255,255,255,.14);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.72);
+      --radius: 18px;
+      --shadow: 0 20px 60px rgba(0,0,0,.45);
+      --good: rgba(62,233,138,.22);
+      --bad: rgba(255,107,107,.20);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans";
+      color:var(--text);
+      background:
+        radial-gradient(1200px 700px at 20% 10%, rgba(92,124,250,.35), transparent 60%),
+        radial-gradient(900px 600px at 80% 20%, rgba(255,158,61,.28), transparent 60%),
+        radial-gradient(1000px 700px at 50% 90%, rgba(62,233,138,.18), transparent 55%),
+        var(--bg);
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .wrap{max-width:1100px;margin:0 auto;padding:clamp(14px,2.4vw,28px)}
+    header{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:14px;flex-wrap:wrap}
+    .brand{display:flex;gap:12px;align-items:center}
+    .logo{
+      width:42px;height:42px;border-radius:14px;
+      background: linear-gradient(135deg, rgba(255,255,255,.18), rgba(255,255,255,.06));
+      border:1px solid var(--border);
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+      display:grid;place-items:center;font-weight:900;user-select:none
+    }
+    h1{margin:0;font-size:clamp(22px,2.6vw,30px);line-height:1.1}
+    .sub{margin:6px 0 0 0;color:var(--muted);font-size:13px}
+    .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .btn{
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.10);
+      color:var(--text);
+      border-radius: 14px;
+      padding: 10px 12px;
+      font-weight: 800;
+      cursor:pointer;
+      box-shadow: 0 12px 30px rgba(0,0,0,.25);
+      transition: transform .12s ease, background .12s ease, border-color .12s ease;
+      user-select:none;
+    }
+    .btn:hover{transform:translateY(-1px);background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.22)}
+    .btn:focus-visible{outline:2px solid rgba(255,255,255,.25);outline-offset:3px}
+    .panel{
+      background: linear-gradient(180deg, var(--panel), var(--panel2));
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .layout{display:grid;grid-template-columns: 1fr 320px;gap:14px;align-items:start}
+    @media (max-width:920px){.layout{grid-template-columns:1fr}}
+
+    .game{padding:14px}
+    .stage{
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.18);
+      border-radius: 16px;
+      padding: 14px;
+      min-height: 380px;
+      display:flex;
+      flex-direction:column;
+      gap: 12px;
+      position: relative;
+      overflow:hidden;
+    }
+
+    .card{
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      border-radius: 16px;
+      padding: 12px;
+    }
+    .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .label{color:var(--muted);font-size:12px;margin-bottom:6px}
+    .value{font-size:18px;font-weight:900}
+
+    .item{
+      width: min(520px, 100%);
+      margin: 0 auto;
+      border-radius: 18px;
+      border:1px solid rgba(255,255,255,.16);
+      background: rgba(255,255,255,.10);
+      padding: 14px 14px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      cursor: grab;
+      user-select:none;
+      touch-action:none;
+      box-shadow: 0 16px 40px rgba(0,0,0,.30);
+      transition: transform .10s ease;
+      position: relative;
+      z-index: 5;
+    }
+    .item:active{cursor: grabbing}
+    .itemLeft{display:flex;align-items:center;gap:12px}
+    .emoji{font-size:28px}
+    .name{font-weight:900}
+    .hint{color:var(--muted);font-size:12px}
+
+    .bins{
+      margin-top:auto;
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    @media (max-width:640px){.bins{grid-template-columns:1fr 1fr}}
+
+    .bin{
+      border-radius: 18px;
+      border:1px solid rgba(255,255,255,.16);
+      background: rgba(255,255,255,.06);
+      padding: 12px;
+      min-height: 110px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      gap:10px;
+      position: relative;
+      overflow:hidden;
+    }
+    .binTop{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .binName{font-weight:900}
+    .binIcon{font-size:22px}
+    .binHelp{color:var(--muted);font-size:12px;line-height:1.25}
+
+    .bin[data-bin="plast"]{box-shadow: inset 0 0 0 9999px rgba(255, 209, 102, .10)}
+    .bin[data-bin="kov"]{box-shadow: inset 0 0 0 9999px rgba(148, 163, 184, .10)}
+    .bin[data-bin="karton"]{box-shadow: inset 0 0 0 9999px rgba(116, 192, 252, .10)}
+    .bin[data-bin="sklo"]{box-shadow: inset 0 0 0 9999px rgba(128, 237, 153, .10)}
+
+    .bin.dragover{outline:2px solid rgba(255,255,255,.35); outline-offset:-2px; background: rgba(255,255,255,.10)}
+    .toast{
+      position:absolute;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 10px 12px;
+      border-radius: 999px;
+      border:1px solid rgba(255,255,255,.16);
+      background: rgba(0,0,0,.35);
+      font-weight:900;
+      opacity:0;
+      pointer-events:none;
+      transition: opacity .18s ease, transform .18s ease;
+      z-index: 10;
+      white-space:nowrap;
+    }
+    .toast.show{opacity:1; transform: translateX(-50%) translateY(2px)}
+    .toast.good{background: rgba(62,233,138,.22)}
+    .toast.bad{background: rgba(255,107,107,.20)}
+
+    .side{padding:14px;display:flex;flex-direction:column;gap:12px}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    select{
+      border:1px solid rgba(255,255,255,.16);
+      background: rgba(255,255,255,.08);
+      color: var(--text);
+      border-radius: 14px;
+      padding: 10px 12px;
+      font-weight: 800;
+      outline:none;
+    }
+    .small{
+      color: var(--muted);
+      font-size:12px;
+      line-height:1.35;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo">♻️</div>
+        <div>
+          <h1>Třídění odpadu</h1>
+          <p class="sub">Přetáhni odpad do správného kontejneru: plast · plech · karton · sklo</p>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="btnStart" class="btn" type="button">▶ Start</button>
+        <button id="btnPause" class="btn" type="button">⏸ Pauza</button>
+        <button id="btnReset" class="btn" type="button">🔁 Nová hra</button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <div class="panel game">
+        <div class="stage" id="stage">
+          <div class="toast" id="toast">OK</div>
+
+          <div class="stats">
+            <div class="card">
+              <div class="label">Skóre</div>
+              <div class="value" id="score">0</div>
+            </div>
+            <div class="card">
+              <div class="label">Čas</div>
+              <div class="value" id="time">60</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="label">Aktuální odpad</div>
+            <div id="itemWrap"></div>
+          </div>
+
+          <div class="bins" id="bins">
+            <div class="bin" data-bin="plast">
+              <div class="binTop"><div class="binName">Plast</div><div class="binIcon">🟨</div></div>
+              <div class="binHelp">Lahve, kelímky, sáčky…</div>
+            </div>
+            <div class="bin" data-bin="kov">
+              <div class="binTop"><div class="binName">Plech</div><div class="binIcon">🥫</div></div>
+              <div class="binHelp">Plechovky, konzervy…</div>
+            </div>
+            <div class="bin" data-bin="karton">
+              <div class="binTop"><div class="binName">Karton</div><div class="binIcon">📦</div></div>
+              <div class="binHelp">Krabice, papír, karton…</div>
+            </div>
+            <div class="bin" data-bin="sklo">
+              <div class="binTop"><div class="binName">Sklo</div><div class="binIcon">🟩</div></div>
+              <div class="binHelp">Láhve, sklenice…</div>
+            </div>
+          </div>
+
+          <div class="small">
+            Tip: Na mobilu drž kartičku a přetáhni ji do kontejneru. Na PC funguje i klasický drag&drop.
+          </div>
+        </div>
+      </div>
+
+      <aside class="panel side">
+        <div class="card">
+          <div class="label">Nastavení</div>
+          <div class="row">
+            <label>
+              <div class="small">Délka hry</div>
+              <select id="duration">
+                <option value="30">30 s</option>
+                <option value="60" selected>60 s</option>
+                <option value="90">90 s</option>
+              </select>
+            </label>
+            <label>
+              <div class="small">Chyby</div>
+              <select id="wrongMode">
+                <option value="soft" selected>-1 bod</option>
+                <option value="strict">reset streaku</option>
+              </select>
+            </label>
+          </div>
+          <div class="small" style="margin-top:8px">
+            Skóre: správně +1, streak bonus každých 5 správně +3.
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="label">Statistiky</div>
+          <div class="small" id="statsText">—</div>
+        </div>
+
+        <div class="card">
+          <div class="label">High score (lokálně)</div>
+          <div class="value" id="hiscore">0</div>
+          <div class="small">Ukládá se do prohlížeče (localStorage).</div>
+        </div>
+
+        <div class="card">
+          <div class="label">Rozšíření (v2 nápady)</div>
+          <div class="small">
+            • víc kategorií (bio, nápojové kartony, elektro…)<br>
+            • „kombo“ za rychlost<br>
+            • vysvětlení po chybě („tohle patří do…“) <br>
+            • režim „učím se“ bez času
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+<script>
+(() => {
+  // --- Data (v1: běžné příklady) ---
+  const ITEMS = [
+    { name:"PET lahev", emoji:"🧴", bin:"plast" },
+    { name:"Plastový kelímek", emoji:"🥤", bin:"plast" },
+    { name:"Sáček", emoji:"🛍️", bin:"plast" },
+    { name:"Šamponová lahev", emoji:"🧴", bin:"plast" },
+    { name:"Fólie", emoji:"🧻", bin:"plast" },
+
+    { name:"Plechovka", emoji:"🥫", bin:"kov" },
+    { name:"Konzerva", emoji:"🥫", bin:"kov" },
+    { name:"Víčko od sklenice (kov)", emoji:"🫙", bin:"kov" },
+    { name:"Alobal (plech)", emoji:"🧻", bin:"kov" },
+
+    { name:"Krabice", emoji:"📦", bin:"karton" },
+    { name:"Papír", emoji:"📄", bin:"karton" },
+    { name:"Noviny", emoji:"🗞️", bin:"karton" },
+    { name:"Kartónový obal", emoji:"📦", bin:"karton" },
+
+    { name:"Skleněná láhev", emoji:"🍾", bin:"sklo" },
+    { name:"Sklenice", emoji:"🫙", bin:"sklo" },
+  ];
+
+  const LS_HISCORE = "trash_sort_v1_hiscore";
+
+  // --- DOM ---
+  const itemWrap = document.getElementById("itemWrap");
+  const bins = Array.from(document.querySelectorAll(".bin"));
+  const toast = document.getElementById("toast");
+
+  const elScore = document.getElementById("score");
+  const elTime = document.getElementById("time");
+  const elStats = document.getElementById("statsText");
+  const elHi = document.getElementById("hiscore");
+
+  const btnStart = document.getElementById("btnStart");
+  const btnPause = document.getElementById("btnPause");
+  const btnReset = document.getElementById("btnReset");
+
+  const selDuration = document.getElementById("duration");
+  const selWrongMode = document.getElementById("wrongMode");
+
+  // --- Sound (simple beeps) ---
+  let audioCtx = null;
+  function ensureAudio(){
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume().catch(()=>{});
+  }
+  function beep(freq=440, dur=0.06, type="sine", gain=0.03){
+    ensureAudio();
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = type;
+    o.frequency.value = freq;
+    g.gain.value = gain;
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start();
+    o.stop(audioCtx.currentTime + dur);
+  }
+  const SFX = {
+    good(){beep(720, 0.06, "triangle", 0.035)},
+    bad(){beep(180, 0.10, "sawtooth", 0.045)},
+    start(){beep(520, 0.08, "sine", 0.04)},
+    end(){beep(260, 0.16, "square", 0.05)},
+  };
+
+  // --- State ---
+  let running = false;
+  let paused = false;
+  let score = 0;
+  let timeLeft = 60;
+  let timerId = null;
+
+  let current = null;
+  let streak = 0;
+  let correct = 0;
+  let wrong = 0;
+
+  // hiscore
+  let hiscore = parseInt(localStorage.getItem(LS_HISCORE) || "0", 10);
+  if (!Number.isFinite(hiscore)) hiscore = 0;
+  elHi.textContent = String(hiscore);
+
+  function randItem(){
+    return ITEMS[Math.floor(Math.random()*ITEMS.length)];
+  }
+
+  function showToast(text, good){
+    toast.textContent = text;
+    toast.classList.remove("good","bad","show");
+    toast.classList.add(good ? "good" : "bad");
+    requestAnimationFrame(() => toast.classList.add("show"));
+    setTimeout(() => toast.classList.remove("show"), 650);
+  }
+
+  function updateUI(){
+    elScore.textContent = String(score);
+    elTime.textContent = String(timeLeft);
+    elStats.textContent =
+      `Správně: ${correct} · Špatně: ${wrong} · Streak: ${streak}`;
+    if (score > hiscore){
+      hiscore = score;
+      localStorage.setItem(LS_HISCORE, String(hiscore));
+      elHi.textContent = String(hiscore);
+    }
+  }
+
+  function renderItem(){
+    itemWrap.innerHTML = "";
+    if (!current){
+      const d = document.createElement("div");
+      d.className = "small";
+      d.textContent = running ? "Načítám…" : "Klikni na Start.";
+      itemWrap.appendChild(d);
+      return;
+    }
+
+    const el = document.createElement("div");
+    el.className = "item";
+    el.setAttribute("draggable","true");
+    el.dataset.bin = current.bin;
+
+    el.innerHTML = `
+      <div class="itemLeft">
+        <div class="emoji">${current.emoji}</div>
+        <div>
+          <div class="name">${current.name}</div>
+          <div class="hint">Přetáhni do správného kontejneru</div>
+        </div>
+      </div>
+      <div class="hint">↘</div>
+    `;
+
+    // Desktop drag
+    el.addEventListener("dragstart", (e) => {
+      if (!running || paused) { e.preventDefault(); return; }
+      ensureAudio();
+      e.dataTransfer.setData("text/plain", current.bin);
+      e.dataTransfer.effectAllowed = "move";
+    });
+
+    // Touch drag (pointer-based)
+    let dragging = false;
+    let startX=0, startY=0, curX=0, curY=0;
+
+    el.addEventListener("pointerdown", (e) => {
+      if (!running || paused) return;
+      ensureAudio();
+      dragging = true;
+      el.setPointerCapture(e.pointerId);
+      startX = e.clientX;
+      startY = e.clientY;
+      curX = 0; curY = 0;
+      el.style.transform = "translate(0,0) scale(1.02)";
+    });
+
+    el.addEventListener("pointermove", (e) => {
+      if (!dragging) return;
+      curX = e.clientX - startX;
+      curY = e.clientY - startY;
+      el.style.transform = `translate(${curX}px, ${curY}px) scale(1.02)`;
+      highlightBinUnderPointer(e.clientX, e.clientY);
+    });
+
+    el.addEventListener("pointerup", (e) => {
+      if (!dragging) return;
+      dragging = false;
+      clearBinHighlights();
+      el.style.transform = "";
+      const target = binUnderPointer(e.clientX, e.clientY);
+      if (target) {
+        handleDrop(target.dataset.bin);
+      }
+    });
+
+    el.addEventListener("pointercancel", () => {
+      dragging = false;
+      clearBinHighlights();
+      el.style.transform = "";
+    });
+
+    itemWrap.appendChild(el);
+  }
+
+  function binUnderPointer(x,y){
+    return bins.find(b => {
+      const r = b.getBoundingClientRect();
+      return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+    }) || null;
+  }
+
+  function clearBinHighlights(){
+    bins.forEach(b => b.classList.remove("dragover"));
+  }
+
+  function highlightBinUnderPointer(x,y){
+    clearBinHighlights();
+    const b = binUnderPointer(x,y);
+    if (b) b.classList.add("dragover");
+  }
+
+  // Drop handling
+  function handleDrop(bin){
+    if (!running || paused || !current) return;
+
+    const ok = (bin === current.bin);
+
+    if (ok){
+      correct++;
+      streak++;
+      score += 1;
+
+      // streak bonus
+      if (streak > 0 && streak % 5 === 0){
+        score += 3;
+        showToast("🔥 Kombo! +3", true);
+      } else {
+        showToast("✅ Správně!", true);
+      }
+      SFX.good();
+    } else {
+      wrong++;
+      if (selWrongMode.value === "soft"){
+        score = Math.max(0, score - 1);
+        streak = 0;
+        showToast("❌ Špatně (-1)", false);
+      } else {
+        streak = 0;
+        showToast("❌ Špatně (streak reset)", false);
+      }
+      SFX.bad();
+    }
+
+    current = randItem();
+    renderItem();
+    updateUI();
+  }
+
+  // bins dragover
+  bins.forEach(b => {
+    b.addEventListener("dragover", (e) => {
+      if (!running || paused) return;
+      e.preventDefault();
+      b.classList.add("dragover");
+      e.dataTransfer.dropEffect = "move";
+    });
+    b.addEventListener("dragleave", () => b.classList.remove("dragover"));
+    b.addEventListener("drop", (e) => {
+      if (!running || paused) return;
+      e.preventDefault();
+      clearBinHighlights();
+      const bin = b.dataset.bin;
+      handleDrop(bin);
+    });
+    // tap-to-drop fallback (pro úplné začátečníky)
+    b.addEventListener("click", () => {
+      if (!running || paused) return;
+      // umožní i „klikni na kontejner“ bez tahání:
+      handleDrop(b.dataset.bin);
+    });
+  });
+
+  function startGame(){
+    ensureAudio();
+    running = true;
+    paused = false;
+    score = 0;
+    streak = 0;
+    correct = 0;
+    wrong = 0;
+    timeLeft = parseInt(selDuration.value, 10);
+    current = randItem();
+    renderItem();
+    updateUI();
+    SFX.start();
+
+    clearInterval(timerId);
+    timerId = setInterval(() => {
+      if (!running || paused) return;
+      timeLeft--;
+      if (timeLeft <= 0){
+        timeLeft = 0;
+        endGame();
+      }
+      updateUI();
+    }, 1000);
+  }
+
+  function endGame(){
+    running = false;
+    paused = false;
+    clearInterval(timerId);
+    timerId = null;
+    renderItem();
+    updateUI();
+    showToast("⏱️ Konec!", true);
+    SFX.end();
+  }
+
+  function togglePause(){
+    if (!running) return;
+    paused = !paused;
+    showToast(paused ? "⏸ Pauza" : "▶ Pokračuj", true);
+    updateUI();
+  }
+
+  function resetGame(){
+    running = false;
+    paused = false;
+    clearInterval(timerId);
+    timerId = null;
+    current = null;
+    score = 0;
+    streak = 0;
+    correct = 0;
+    wrong = 0;
+    timeLeft = parseInt(selDuration.value, 10);
+    renderItem();
+    updateUI();
+  }
+
+  btnStart.addEventListener("click", startGame);
+  btnPause.addEventListener("click", () => { ensureAudio(); togglePause(); });
+  btnReset.addEventListener("click", () => { ensureAudio(); resetGame(); });
+
+  // init
+  resetGame();
+})();
+</script>
+</body>
+</html>
