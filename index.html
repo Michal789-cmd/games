@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Minihry pro děti</title>
+  <meta name="description" content="Jednoduché minihry pro děti – tetris, plošinovky a další." />
+  <style>
+    :root{
+      --bg: #0b1020;
+      --card: rgba(255,255,255,.08);
+      --card2: rgba(255,255,255,.06);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.72);
+      --border: rgba(255,255,255,.12);
+      --shadow: 0 20px 60px rgba(0,0,0,.45);
+      --radius: 18px;
+      --max: 1100px;
+      --focus: rgba(255,255,255,.22);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
+      color:var(--text);
+      background:
+        radial-gradient(1200px 700px at 20% 10%, rgba(92,124,250,.35), transparent 60%),
+        radial-gradient(900px 600px at 80% 20%, rgba(255,158,61,.28), transparent 60%),
+        radial-gradient(1000px 700px at 50% 90%, rgba(62,233,138,.18), transparent 55%),
+        var(--bg);
+      min-height:100%;
+    }
+    a{color:inherit}
+    .wrap{
+      max-width:var(--max);
+      margin:0 auto;
+      padding: clamp(18px, 3vw, 34px);
+    }
+    header{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:16px;
+      margin-top: 6px;
+      margin-bottom: 18px;
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+    .logo{
+      width:44px;height:44px;border-radius:14px;
+      background: linear-gradient(135deg, rgba(255,255,255,.18), rgba(255,255,255,.05));
+      border:1px solid var(--border);
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+      display:grid;place-items:center;
+      user-select:none;
+    }
+    .logo span{
+      font-weight:900;
+      letter-spacing:.5px;
+    }
+    h1{
+      font-size: clamp(26px, 3.2vw, 40px);
+      line-height:1.05;
+      margin:0;
+    }
+    .subtitle{
+      margin:8px 0 0 0;
+      color:var(--muted);
+      font-size: clamp(14px, 1.6vw, 16px);
+      max-width: 60ch;
+    }
+    .top-actions{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    .chip{
+      font-size:13px;
+      padding:10px 12px;
+      border-radius:999px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      text-decoration:none;
+      transition: transform .12s ease, background .12s ease, border-color .12s ease;
+    }
+    .chip:hover{transform: translateY(-1px); background: rgba(255,255,255,.09); border-color: rgba(255,255,255,.18)}
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 14px;
+      margin-top: 22px;
+    }
+    .card{
+      grid-column: span 6;
+      background: linear-gradient(180deg, var(--card), var(--card2));
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      position:relative;
+      overflow:hidden;
+      transition: transform .14s ease, border-color .14s ease, background .14s ease;
+      text-decoration:none;
+      display:flex;
+      flex-direction:column;
+      min-height: 170px;
+    }
+    .card:hover{
+      transform: translateY(-3px);
+      border-color: rgba(255,255,255,.22);
+      background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
+    }
+    .card:focus-visible{
+      outline: 2px solid var(--focus);
+      outline-offset: 3px;
+    }
+    .badge{
+      font-size:12px;
+      color: rgba(255,255,255,.78);
+      background: rgba(255,255,255,.10);
+      border: 1px solid rgba(255,255,255,.14);
+      padding: 6px 10px;
+      border-radius: 999px;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      width: fit-content;
+    }
+    .emoji{font-size:16px; line-height:1}
+    .card h2{
+      margin: 12px 0 8px 0;
+      font-size: 20px;
+      letter-spacing:.2px;
+    }
+    .card p{
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 14px;
+      max-width: 62ch;
+    }
+    .meta{
+      margin-top:auto;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      padding-top: 14px;
+      color: rgba(255,255,255,.75);
+      font-size: 12px;
+    }
+    .pill{
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      padding:6px 10px;
+      border-radius:999px;
+    }
+
+    .wide{
+      grid-column: span 12;
+      padding: 18px;
+      display:flex;
+      align-items:flex-start;
+      gap: 14px;
+      justify-content:space-between;
+    }
+    .wide .left{
+      max-width: 70ch;
+    }
+    .wide h2{margin:0 0 6px 0}
+    .wide .btn{
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.10);
+      text-decoration:none;
+      font-weight:700;
+      transition: transform .12s ease, background .12s ease;
+      white-space:nowrap;
+    }
+    .wide .btn:hover{transform: translateY(-1px); background: rgba(255,255,255,.14)}
+    footer{
+      margin-top: 22px;
+      color: rgba(255,255,255,.65);
+      font-size: 12px;
+      display:flex;
+      justify-content:space-between;
+      gap: 12px;
+      flex-wrap:wrap;
+      padding: 6px 2px 18px;
+    }
+    .small-link{
+      color: rgba(255,255,255,.72);
+      text-decoration: none;
+      border-bottom: 1px dashed rgba(255,255,255,.25);
+    }
+    .small-link:hover{color: rgba(255,255,255,.9); border-bottom-color: rgba(255,255,255,.5)}
+
+    @media (max-width: 860px){
+      header{flex-direction:column; align-items:flex-start}
+      .top-actions{justify-content:flex-start}
+      .card{grid-column: span 12}
+      .wide{flex-direction:column}
+      .wide .btn{width:fit-content}
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true"><span>MH</span></div>
+        <div>
+          <h1>Minihry pro děti</h1>
+          <p class="subtitle">
+            Vyber si hru a hraj hned. Jednoduché ovládání, krátké úrovně, rychlá zábava.
+          </p>
+        </div>
+      </div>
+
+      <nav class="top-actions" aria-label="Rychlé akce">
+        <a class="chip" href="#hry">🎮 Hry</a>
+        <a class="chip" href="README.html" title="Volitelně: stránka s popisem projektu">📘 Jak to funguje</a>
+        <a class="chip" href="https://github.com/" target="_blank" rel="noopener">⭐ GitHub</a>
+      </nav>
+    </header>
+
+    <main id="hry" class="grid" aria-label="Seznam her">
+
+      <!-- INFO / CTA -->
+      <section class="card wide" aria-label="Tip">
+        <div class="left">
+          <h2>Tip: ideální na tablet i mobil</h2>
+          <p>
+            Každá hra je v samostatné složce. Stačí přidat novou hru do <code>/games/nazev-hry/</code>
+            a vložit sem jednu kartičku.
+          </p>
+        </div>
+        <a class="btn" href="#jak-pridat" title="Jak přidat další hru">➕ Přidat další hru</a>
+      </section>
+
+      <!-- GAME CARDS -->
+      <a class="card" href="games/tetris/" aria-label="Spustit Tetris mini">
+        <span class="badge"><span class="emoji">🧱</span> Tetris mini</span>
+        <h2>Tetris mini</h2>
+        <p>
+          Skládej padající kostky, dělej řádky a získej co nejvíc bodů. Krátké hraní, rychlá odměna.
+        </p>
+        <div class="meta">
+          <span class="pill">Ovládání: šipky</span>
+          <span class="pill">Věk: 6+</span>
+          <span class="pill">1–3 min</span>
+        </div>
+      </a>
+
+      <a class="card" href="games/platformer/" aria-label="Spustit Plošinovku">
+        <span class="badge"><span class="emoji">⭐</span> Plošinovka</span>
+        <h2>Plošinovka: sbírej hvězdy</h2>
+        <p>
+          Skákej přes překážky, sbírej hvězdy a dojdi do cíle. Jednoduché levely pro děti.
+        </p>
+        <div class="meta">
+          <span class="pill">Ovládání: šipky + mezerník</span>
+          <span class="pill">Věk: 5+</span>
+          <span class="pill">1–5 min</span>
+        </div>
+      </a>
+
+      <!-- PLACEHOLDERS -->
+      <a class="card" href="games/snake/" aria-label="Spustit Snake (zatím se připravuje)" style="opacity:.92">
+        <span class="badge"><span class="emoji">🐍</span> Připravuje se</span>
+        <h2>Had (Snake)</h2>
+        <p>
+          Klasika na rychlé reakce. Až ji doplníš, stačí vytvořit složku <code>/games/snake/</code>.
+        </p>
+        <div class="meta">
+          <span class="pill">Status: brzy</span>
+          <span class="pill">Věk: 6+</span>
+        </div>
+      </a>
+
+      <a class="card" href="games/memory/" aria-label="Spustit Pexeso (zatím se připravuje)" style="opacity:.92">
+        <span class="badge"><span class="emoji">🧠</span> Připravuje se</span>
+        <h2>Pexeso</h2>
+        <p>
+          Otoč dvě kartičky a hledej dvojice. Skvělé pro menší děti – minimum ovládání.
+        </p>
+        <div class="meta">
+          <span class="pill">Status: brzy</span>
+          <span class="pill">Věk: 4+</span>
+        </div>
+      </a>
+
+      <!-- HOW TO ADD -->
+      <section class="card wide" id="jak-pridat" aria-label="Jak přidat hru">
+        <div class="left">
+          <h2>Jak přidat další hru</h2>
+          <p>
+            1) Vytvoř složku <code>/games/nazev/</code> s vlastním <code>index.html</code>.<br>
+            2) Do tohoto souboru přidej novou kartičku (zkopíruj některou existující).<br>
+            3) Hotovo — GitHub Pages to hned uvidí.
+          </p>
+        </div>
+        <a class="btn" href="#hry">⬆️ Zpět na hry</a>
+      </section>
+
+    </main>
+
+    <footer>
+      <div>© <span id="year"></span> Minihry pro děti</div>
+      <div>
+        <a class="small-link" href="./">Domů</a>
+        &nbsp;·&nbsp;
+        <a class="small-link" href="games/">Složka /games</a>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
